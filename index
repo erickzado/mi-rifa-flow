@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🎲 Rifa App - Pagos con Flow</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { text-align: center; color: #333; margin: 0 0 5px 0; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
+        
+        .email-status {
+            background: #34C759;
+            color: white;
+            padding: 10px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .rifa-status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .rifa-status.activa { background: #4CAF50; color: white; }
+        .rifa-status.inactiva { background: #f44336; color: white; }
+        
+        .role-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .role-btn.cliente {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .role-btn.admin {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+        .role-btn.active { opacity: 0.8; }
+        
+        .screen { display: none; }
+        .screen.active { display: block; }
+        
+        .stats {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 28px; font-weight: bold; }
+        .stat-card .label { font-size: 12px; opacity: 0.9; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 6px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        .numero-btn {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .numero-btn.libres { background: #4CAF50; color: white; }
+        .numero-btn.vendidos { background: #f44336; color: white; opacity: 0.7; }
+        .numero-btn:active { transform: scale(0.95); }
+        
+        .form-panel {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .btn-danger { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .btn-success { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            max-width: 350px;
+            text-align: center;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            z-index: 1100;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #4CAF50; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .admin-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 15px;
+            flex-wrap: wrap;
+        }
+        .admin-tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .admin-tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .admin-panel { display: none; }
+        .admin-panel.active { display: block; }
+        
+        .lista-compradores { max-height: 400px; overflow-y: auto; }
+        .comprador-item {
+            background: #f9f9f9;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .comprador-numero { font-weight: bold; color: #667eea; font-size: 18px; }
+        .comprador-nombre { font-size: 14px; color: #333; }
+        .comprador-telefono { font-size: 12px; color: #666; }
+        .comprobante-info {
+            background: #e8f5e9;
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+        
+        footer { text-align: center; font-size: 11px; color: #999; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎲 Rifa App</h1>
+        <div class="subtitle">Pagos con Flow - Tarjeta y Redcompra</div>
+
+        <div class="email-status">
+            📧 LAS VENTAS SE ENVÍAN A TU CORREO
+        </div>
+
+        <div id="rifaStatus" class="rifa-status activa">🟢 RIFA ACTIVA</div>
+
+        <div class="role-selector">
+            <button class="role-btn cliente active" onclick="cambiarRol('cliente')">🛒 CLIENTE</button>
+            <button class="role-btn admin" onclick="cambiarRol('admin')">🔐 ADMIN</button>
+        </div>
+
+        <div id="screenCliente" class="screen active">
+            <div class="stats">
+                <div class="stat-card"><div class="number" id="clienteVendidos">0</div><div class="label">Vendidos</div></div>
+                <div class="stat-card"><div class="number" id="clienteLibres">0</div><div class="label">Disponibles</div></div>
+            </div>
+            <div class="grid" id="clienteGrid"></div>
+            <footer>✅ Pagos seguros con Flow.cl</footer>
+        </div>
+
+        <div id="screenAdmin" class="screen">
+            <div id="adminLoginPanel">
+                <div class="form-panel">
+                    <h3>🔐 Acceso Administrador</h3>
+                    <input type="password" id="adminPassword" placeholder="Contraseña">
+                    <button onclick="verificarAdmin()">Ingresar</button>
+                    <button onclick="resetearPassword()" class="btn-warning" style="margin-top:10px;">🔄 Resetear contraseña (admin123)</button>
+                    <small style="display:block; margin-top:10px;">Contraseña: <strong>admin123</strong></small>
+                </div>
+            </div>
+            <div id="adminPanel" style="display: none;">
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="cambiarAdminTab('tablero')">📊 Tablero</button>
+                    <button class="admin-tab" onclick="cambiarAdminTab('lista')">📋 Compradores</button>
+                    <button class="admin-tab" onclick="cambiarAdminTab('stats')">📈 Estadísticas</button>
+                    <button class="admin-tab" onclick="cambiarAdminTab('sorteo')">🎲 Sorteo</button>
+                    <button class="admin-tab" onclick="cambiarAdminTab('config')">⚙️ Config</button>
+                </div>
+
+                <div id="adminTabTablero" class="admin-panel active">
+                    <div class="stats">
+                        <div class="stat-card"><div class="number" id="adminVendidos">0</div><div class="label">Vendidos</div></div>
+                        <div class="stat-card"><div class="number" id="adminLibres">0</div><div class="label">Libres</div></div>
+                        <div class="stat-card"><div class="number" id="adminRecaudacion">$0</div><div class="label">Recaudado</div></div>
+                    </div>
+                    <div class="grid" id="adminGrid"></div>
+                </div>
+
+                <div id="adminTabLista" class="admin-panel">
+                    <div class="lista-compradores" id="listaCompradores"></div>
+                    <button onclick="exportarDatos()" style="margin-top:15px;">📥 Exportar a CSV</button>
+                </div>
+
+                <div id="adminTabStats" class="admin-panel">
+                    <div class="form-panel">
+                        <h3>📊 Resumen de la Rifa</h3>
+                        <p><strong>📦 Total números:</strong> 100</p>
+                        <p><strong>✅ Vendidos:</strong> <span id="statVendidos">0</span></p>
+                        <p><strong>📭 Libres:</strong> <span id="statLibres">100</span></p>
+                        <p><strong>💰 Precio por número:</strong> $<span id="statPrecio">5000</span></p>
+                        <p><strong>💵 Total recaudado:</strong> $<span id="statTotal">0</span></p>
+                        <p><strong>📈 Porcentaje vendido:</strong> <span id="statPorcentaje">0</span>%</p>
+                    </div>
+                </div>
+
+                <div id="adminTabSorteo" class="admin-panel">
+                    <div class="form-panel">
+                        <h3>🎯 Sorteo del Ganador</h3>
+                        <p id="infoVendidos">0 números vendidos de 100</p>
+                        <button class="btn-danger" onclick="realizarSorteo()">🎲 SORTEAR GANADOR 🎲</button>
+                    </div>
+                </div>
+
+                <div id="adminTabConfig" class="admin-panel">
+                    <div class="form-panel">
+                        <h3>⚙️ Configuración General</h3>
+                        
+                        <div class="config-row">
+                            <span>🔘 Estado de la rifa:</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggleRifaEstado" onchange="cambiarEstadoRifa()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <label>🔐 Cambiar contraseña de administrador</label>
+                        <input type="password" id="nuevaPassword" placeholder="Nueva contraseña">
+                        <input type="password" id="confirmarPassword" placeholder="Confirmar contraseña">
+                        <button onclick="cambiarPassword()">🔑 Cambiar Contraseña</button>
+                        
+                        <hr>
+                        
+                        <label>💰 Precio por número (CLP)</label>
+                        <input type="number" id="configPrecio" value="5000">
+                        
+                        <label>📧 Tu correo electrónico (para recibir notificaciones)</label>
+                        <input type="email" id="configEmail" placeholder="tucorreo@gmail.com">
+                        <small style="font-size:11px; color:#666;">Aquí recibirás un correo cada vez que alguien compre un número</small>
+                        
+                        <label>🏦 Datos bancarios para transferencia (si no usas Flow)</label>
+                        <textarea id="datosBancarios" rows="3" placeholder="Tus datos bancarios"></textarea>
+                        
+                        <button onclick="guardarConfiguracion()">💾 Guardar Configuración</button>
+                        <button class="btn-danger" onclick="reiniciarRifa()" style="margin-top:10px;">🔄 REINICIAR RIFA COMPLETA</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCompra" class="modal">
+        <div class="modal-content">
+            <h3>🎫 Comprar Número</h3>
+            <p>Número: <strong id="numeroSeleccionado">00</strong></p>
+            <p>Precio: <strong id="precioMostrar">$5000</strong> CLP</p>
+            
+            <div id="datosBancariosModal" style="background:#f0f0f0; padding:10px; border-radius:10px; margin:10px 0; font-size:12px; text-align:left;"></div>
+            
+            <input type="text" id="nombreComprador" placeholder="Tu nombre completo">
+            <input type="tel" id="telefonoComprador" placeholder="Tu teléfono">
+            <input type="email" id="emailComprador" placeholder="Tu correo electrónico" required>
+            
+            <select id="bancoComprador">
+                <option value="">Método de pago (opcional)</option>
+                <option value="Tarjeta">💳 Pagar con Tarjeta (Flow)</option>
+                <option value="Transferencia">🏦 Transferencia bancaria</option>
+            </select>
+            
+            <div id="flowInfo" style="background:#e3f2fd; padding:10px; border-radius:10px; margin:10px 0; font-size:12px; display:none;">
+                🔐 Serás redirigido a Flow.cl para pagar con tarjeta o Redcompra de forma segura
+            </div>
+            
+            <button class="btn-success" onclick="mostrarConfirmacionCompra()">✅ Continuar</button>
+            <button onclick="cerrarModal()" style="background:#999;">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modalConfirmacion" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ Confirmar Compra</h3>
+            <p id="confirmacionMensaje">¿Estás seguro?</p>
+            <button class="btn-success" onclick="confirmarCompraFinal()">✅ Sí, confirmar</button>
+            <button onclick="cerrarConfirmacion()" style="background:#999;">Volver</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN DE FIREBASE
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAr0g7y2QscDViJ6LlQo8wmfVqHNlmyXNM",
+            authDomain: "rifas01-27c45.firebaseapp.com",
+            databaseURL: "https://rifas01-27c45-default-rtdb.firebaseio.com",
+            projectId: "rifas01-27c45",
+            storageBucket: "rifas01-27c45.firebasestorage.app",
+            messagingSenderId: "89038946153",
+            appId: "1:89038946153:web:e9b022f0053e99622047f8"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const rifaRef = database.ref('rifa');
+        
+        // ============================================
+        // CONFIGURACIÓN DE EMAILJS (YA INCLUIDA)
+        // ============================================
+        emailjs.init("Uzp0GZvuHrKZpNlA3");
+        
+        let numeros = [];
+        let configApp = {
+            rifaActiva: true,
+            precio: 5000,
+            adminPassword: "admin123",
+            emailAdmin: "",
+            datosBancarios: ""
+        };
+        let numeroEnVenta = null;
+        let adminAutenticado = false;
+        let datosCompra = {};
+        
+        // ============ FUNCIONES ============
+        async function enviarCorreo(numero, nombre, telefono, banco, comprobante, email) {
+            if (!configApp.emailAdmin) return false;
+            
+            const templateParams = {
+                to_email: configApp.emailAdmin,
+                numero: numero,
+                nombre: nombre,
+                telefono: telefono || 'No registrado',
+                banco: banco,
+                comprobante: comprobante,
+                precio: configApp.precio
+            };
+            
+            try {
+                await emailjs.send('service_2scbkwn', 'template_dg94ckf', templateParams);
+                console.log("Correo enviado");
+                return true;
+            } catch (error) {
+                console.error("Error email:", error);
+                return false;
+            }
+        }
+        
+        function generarNumeros() {
+            const nuevos = [];
+            for (let i = 0; i <= 99; i++) {
+                nuevos.push({
+                    numero: i.toString().padStart(2, '0'),
+                    valor: i,
+                    estado: 'libre',
+                    comprador: '',
+                    telefono: '',
+                    email: '',
+                    banco: '',
+                    comprobante: '',
+                    fecha: null
+                });
+            }
+            return nuevos;
+        }
+        
+        async function guardarEnFirebase() {
+            await rifaRef.update({
+                numeros: numeros,
+                config: {
+                    rifaActiva: configApp.rifaActiva,
+                    precio: configApp.precio,
+                    adminPassword: configApp.adminPassword,
+                    emailAdmin: configApp.emailAdmin,
+                    datosBancarios: configApp.datosBancarios
+                },
+                ultimaActualizacion: new Date().toISOString()
+            });
+        }
+        
+        function iniciarSincronizacion() {
+            rifaRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    if (data.numeros) numeros = data.numeros;
+                    if (data.config) {
+                        configApp = { ...configApp, ...data.config };
+                        document.getElementById('configPrecio').value = configApp.precio;
+                        document.getElementById('configEmail').value = configApp.emailAdmin || '';
+                        document.getElementById('datosBancarios').value = configApp.datosBancarios || '';
+                        const toggle = document.getElementById('toggleRifaEstado');
+                        if (toggle) toggle.checked = configApp.rifaActiva;
+                        actualizarEstadoRifaUI();
+                    }
+                    actualizarTodasLasPantallas();
+                }
+            });
+        }
+        
+        document.getElementById('bancoComprador')?.addEventListener('change', (e) => {
+            const flowInfo = document.getElementById('flowInfo');
+            if (e.target.value === 'Tarjeta') {
+                flowInfo.style.display = 'block';
+            } else {
+                flowInfo.style.display = 'none';
+            }
+        });
+        
+        function abrirModalCompra(numero) {
+            if (!configApp.rifaActiva) {
+                mostrarToast('🔴 La rifa está inactiva');
+                return;
+            }
+            
+            const numeroObj = numeros.find(n => n.numero === numero);
+            if (numeroObj.estado === 'vendido') {
+                mostrarToast(`❌ El número ${numero} ya está vendido`);
+                return;
+            }
+            
+            numeroEnVenta = numero;
+            document.getElementById('numeroSeleccionado').innerText = numero;
+            document.getElementById('precioMostrar').innerHTML = `$${configApp.precio}`;
+            document.getElementById('nombreComprador').value = '';
+            document.getElementById('telefonoComprador').value = '';
+            document.getElementById('emailComprador').value = '';
+            document.getElementById('bancoComprador').value = '';
+            document.getElementById('flowInfo').style.display = 'none';
+            
+            const datosDiv = document.getElementById('datosBancariosModal');
+            if (configApp.datosBancarios) {
+                datosDiv.innerHTML = `<strong>🏦 Datos para transferir:</strong><br>${configApp.datosBancarios.replace(/\n/g, '<br>')}`;
+            } else {
+                datosDiv.innerHTML = '<strong>🏦 Datos para transferir:</strong><br>Contacta al organizador';
+            }
+            document.getElementById('modalCompra').style.display = 'flex';
+        }
+        
+        function mostrarConfirmacionCompra() {
+            const nombre = document.getElementById('nombreComprador').value.trim();
+            const telefono = document.getElementById('telefonoComprador').value.trim();
+            const email = document.getElementById('emailComprador').value.trim();
+            const banco = document.getElementById('bancoComprador').value;
+            
+            if (!nombre) { mostrarToast('❌ Ingresa tu nombre'); return; }
+            if (!email) { mostrarToast('❌ Ingresa tu correo electrónico'); return; }
+            if (!banco) { mostrarToast('❌ Selecciona un método de pago'); return; }
+            
+            datosCompra = { nombre, telefono, email, banco, comprobante: 'Pago pendiente' };
+            document.getElementById('confirmacionMensaje').innerHTML = `¿Comprar número <strong>${numeroEnVenta}</strong> por <strong>$${configApp.precio}</strong>?`;
+            document.getElementById('modalCompra').style.display = 'none';
+            document.getElementById('modalConfirmacion').style.display = 'flex';
+        }
+        
+        async function confirmarCompraFinal() {
+            const index = numeros.findIndex(n => n.numero === numeroEnVenta);
+            
+            if (index === -1 || numeros[index].estado === 'vendido') {
+                mostrarToast('❌ Este número ya fue vendido');
+                cerrarConfirmacion();
+                actualizarTodasLasPantallas();
+                return;
+            }
+            
+            if (datosCompra.banco === 'Tarjeta') {
+                mostrarToast("🔄 Redirigiendo a Flow para pagar...");
+                
+                try {
+                    const response = await fetch('/.netlify/functions/create-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            numero: numeroEnVenta,
+                            nombre: datosCompra.nombre,
+                            email: datosCompra.email,
+                            monto: configApp.precio
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.url) {
+                        localStorage.setItem('ventaPendiente', JSON.stringify({
+                            numero: numeroEnVenta,
+                            comprador: datosCompra.nombre,
+                            telefono: datosCompra.telefono,
+                            email: datosCompra.email,
+                            precio: configApp.precio
+                        }));
+                        window.location.href = data.url;
+                    } else {
+                        mostrarToast("❌ Error al crear el pago en Flow");
+                    }
+                } catch (error) {
+                    mostrarToast("❌ Error de conexión con Flow");
+                }
+                return;
+            }
+            
+            numeros[index].estado = 'vendido';
+            numeros[index].comprador = datosCompra.nombre;
+            numeros[index].telefono = datosCompra.telefono;
+            numeros[index].email = datosCompra.email;
+            numeros[index].banco = datosCompra.banco;
+            numeros[index].comprobante = "Transferencia pendiente";
+            numeros[index].fecha = new Date().toISOString();
+            
+            await guardarEnFirebase();
+            
+            await enviarCorreo(numeroEnVenta, datosCompra.nombre, datosCompra.telefono, datosCompra.banco, "Transferencia pendiente", datosCompra.email);
+            
+            cerrarConfirmacion();
+            cerrarModal();
+            mostrarToast(`✅ ¡Compra confirmada! Número ${numeroEnVenta} para ${datosCompra.nombre}`);
+        }
+        
+        function verificarVentaPendiente() {
+            const ventaPendiente = localStorage.getItem('ventaPendiente');
+            if (ventaPendiente) {
+                const venta = JSON.parse(ventaPendiente);
+                mostrarToast(`✅ Pago exitoso! Número ${venta.numero} vendido a ${venta.comprador}`);
+                localStorage.removeItem('ventaPendiente');
+                setTimeout(() => location.reload(), 2000);
+            }
+        }
+        
+        // ============ ADMIN ============
+        function verificarAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === configApp.adminPassword) {
+                adminAutenticado = true;
+                document.getElementById('adminLoginPanel').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                actualizarPantallaAdmin();
+                mostrarToast('✅ Bienvenido Admin');
+            } else {
+                mostrarToast('❌ Contraseña incorrecta');
+            }
+        }
+        
+        function resetearPassword() {
+            configApp.adminPassword = "admin123";
+            guardarEnFirebase();
+            mostrarToast('✅ Contraseña reseteada a: admin123');
+        }
+        
+        function cambiarPassword() {
+            const nueva = document.getElementById('nuevaPassword').value;
+            const confirmar = document.getElementById('confirmarPassword').value;
+            
+            if (nueva.length < 4) {
+                mostrarToast('❌ Mínimo 4 caracteres');
+                return;
+            }
+            if (nueva !== confirmar) {
+                mostrarToast('❌ No coinciden');
+                return;
+            }
+            
+            configApp.adminPassword = nueva;
+            guardarEnFirebase();
+            document.getElementById('nuevaPassword').value = '';
+            document.getElementById('confirmarPassword').value = '';
+            mostrarToast('✅ Contraseña cambiada');
+        }
+        
+        function guardarConfiguracion() {
+            configApp.precio = parseInt(document.getElementById('configPrecio').value) || 5000;
+            configApp.emailAdmin = document.getElementById('configEmail').value;
+            configApp.datosBancarios = document.getElementById('datosBancarios').value;
+            guardarEnFirebase();
+            mostrarToast('✅ Configuración guardada');
+        }
+        
+        async function realizarSorteo() {
+            const vendidos = numeros.filter(n => n.estado === 'vendido');
+            if (vendidos.length === 0) {
+                mostrarToast('❌ No hay números vendidos');
+                return;
+            }
+            const ganador = vendidos[Math.floor(Math.random() * vendidos.length)];
+            alert(`🎉 GANADOR 🎉\n\nNúmero: ${ganador.numero}\nComprador: ${ganador.comprador}\nTeléfono: ${ganador.telefono || 'No'}\nEmail: ${ganador.email || 'No'}`);
+        }
+        
+        async function reiniciarRifa() {
+            if (confirm('⚠️ ¿REINICIAR? Se perderán todas las ventas')) {
+                numeros = generarNumeros();
+                await guardarEnFirebase();
+                mostrarToast('✅ Rifa reiniciada');
+            }
+        }
+        
+        async function cambiarEstadoRifa() {
+            configApp.rifaActiva = document.getElementById('toggleRifaEstado').checked;
+            await guardarEnFirebase();
+            actualizarEstadoRifaUI();
+        }
+        
+        function actualizarEstadoRifaUI() {
+            const statusDiv = document.getElementById('rifaStatus');
+            statusDiv.className = `rifa-status ${configApp.rifaActiva ? 'activa' : 'inactiva'}`;
+            statusDiv.innerHTML = configApp.rifaActiva ? '🟢 RIFA ACTIVA - Compras habilitadas' : '🔴 RIFA INACTIVA - Compras deshabilitadas';
+        }
+        
+        function exportarDatos() {
+            const vendidos = numeros.filter(n => n.estado === 'vendido');
+            if (vendidos.length === 0) {
+                mostrarToast('No hay datos');
+                return;
+            }
+            
+            let csv = "Número,Comprador,Teléfono,Email,Banco,Comprobante,Fecha\n";
+            vendidos.forEach(v => {
+                csv += `"${v.numero}","${v.comprador}","${v.telefono || ''}","${v.email || ''}","${v.banco || ''}","${v.comprobante || ''}","${v.fecha || ''}"\n`;
+            });
+            
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `rifa_${new Date().toISOString().slice(0,19)}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            mostrarToast('📥 Datos exportados');
+        }
+        
+        function actualizarTodasLasPantallas() {
+            actualizarPantallaCliente();
+            if (adminAutenticado) actualizarPantallaAdmin();
+        }
+        
+        function actualizarPantallaCliente() {
+            if (!numeros.length) return;
+            const vendidos = numeros.filter(n => n.estado === 'vendido').length;
+            const libres = numeros.length - vendidos;
+            
+            document.getElementById('clienteVendidos').innerText = vendidos;
+            document.getElementById('clienteLibres').innerText = libres;
+            
+            const grid = document.getElementById('clienteGrid');
+            if (grid) {
+                grid.innerHTML = '';
+                numeros.forEach(num => {
+                    const btn = document.createElement('button');
+                    btn.className = `numero-btn ${num.estado === 'libre' ? 'libres' : 'vendidos'}`;
+                    btn.innerText = num.numero;
+                    if (num.estado === 'libre' && configApp.rifaActiva) {
+                        btn.onclick = () => abrirModalCompra(num.numero);
+                    }
+                    grid.appendChild(btn);
+                });
+            }
+        }
+        
+        function actualizarPantallaAdmin() {
+            if (!numeros.length) return;
+            const vendidos = numeros.filter(n => n.estado === 'vendido').length;
+            const libres = numeros.length - vendidos;
+            const recaudacion = vendidos * configApp.precio;
+            const porcentaje = ((vendidos / numeros.length) * 100).toFixed(1);
+            
+            document.getElementById('adminVendidos').innerText = vendidos;
+            document.getElementById('adminLibres').innerText = libres;
+            document.getElementById('adminRecaudacion').innerText = `$${recaudacion} CLP`;
+            document.getElementById('statVendidos').innerText = vendidos;
+            document.getElementById('statLibres').innerText = libres;
+            document.getElementById('statPrecio').innerText = configApp.precio;
+            document.getElementById('statTotal').innerText = recaudacion;
+            document.getElementById('statPorcentaje').innerText = porcentaje;
+            document.getElementById('infoVendidos').innerHTML = `${vendidos}/${numeros.length} vendidos (${porcentaje}%)`;
+            
+            const gridAdmin = document.getElementById('adminGrid');
+            if (gridAdmin) {
+                gridAdmin.innerHTML = '';
+                numeros.forEach(num => {
+                    const btn = document.createElement('button');
+                    btn.className = `numero-btn ${num.estado === 'libre' ? 'libres' : 'vendidos'}`;
+                    btn.innerText = num.numero;
+                    gridAdmin.appendChild(btn);
+                });
+            }
+            
+            const vendidosList = numeros.filter(n => n.estado === 'vendido').sort((a,b) => a.valor - b.valor);
+            const contenedor = document.getElementById('listaCompradores');
+            if (contenedor) {
+                if (vendidosList.length === 0) {
+                    contenedor.innerHTML = '<div style="text-align:center; padding:40px;">📭 Sin ventas</div>';
+                } else {
+                    contenedor.innerHTML = vendidosList.map(v => `
+                        <div class="comprador-item">
+                            <div class="comprador-numero">🎯 ${v.numero}</div>
+                            <div class="comprador-nombre">${v.comprador}</div>
+                            <div class="comprador-telefono">📞 ${v.telefono || 'Sin teléfono'}</div>
+                            <div class="comprobante-info">🏦 ${v.banco || 'No'} | 🔢 ${v.comprobante || 'No'}</div>
+                            <div style="font-size:11px; color:#999;">${v.fecha ? new Date(v.fecha).toLocaleString('es-CL') : ''}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+        
+        function cambiarAdminTab(tab) {
+            document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`adminTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+        }
+        
+        function cambiarRol(rol) {
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            if (rol === 'cliente') {
+                document.querySelector('.role-btn.cliente').classList.add('active');
+                document.getElementById('screenCliente').classList.add('active');
+                document.getElementById('screenAdmin').classList.remove('active');
+            } else {
+                document.querySelector('.role-btn.admin').classList.add('active');
+                document.getElementById('screenCliente').classList.remove('active');
+                document.getElementById('screenAdmin').classList.add('active');
+            }
+        }
+        
+        function cerrarModal() {
+            document.getElementById('modalCompra').style.display = 'none';
+            numeroEnVenta = null;
+        }
+        
+        function cerrarConfirmacion() {
+            document.getElementById('modalConfirmacion').style.display = 'none';
+        }
+        
+        function mostrarToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        async function init() {
+            const snapshot = await rifaRef.once('value');
+            if (!snapshot.exists()) {
+                numeros = generarNumeros();
+                await guardarEnFirebase();
+            }
+            iniciarSincronizacion();
+            verificarVentaPendiente();
+        }
+        
+        window.cambiarRol = cambiarRol;
+        window.verificarAdmin = verificarAdmin;
+        window.resetearPassword = resetearPassword;
+        window.cambiarPassword = cambiarPassword;
+        window.cambiarEstadoRifa = cambiarEstadoRifa;
+        window.realizarSorteo = realizarSorteo;
+        window.reiniciarRifa = reiniciarRifa;
+        window.guardarConfiguracion = guardarConfiguracion;
+        window.exportarDatos = exportarDatos;
+        window.cambiarAdminTab = cambiarAdminTab;
+        window.mostrarConfirmacionCompra = mostrarConfirmacionCompra;
+        window.confirmarCompraFinal = confirmarCompraFinal;
+        window.cerrarModal = cerrarModal;
+        window.cerrarConfirmacion = cerrarConfirmacion;
+        
+        init();
+        
+        window.onclick = (event) => {
+            if (event.target === document.getElementById('modalCompra')) cerrarModal();
+            if (event.target === document.getElementById('modalConfirmacion')) cerrarConfirmacion();
+        };
+    </script>
+</body>
+</html>
