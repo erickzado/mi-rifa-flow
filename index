@@ -431,7 +431,7 @@
         const rifaRef = database.ref('rifa');
         
         // ============================================
-        // CONFIGURACIÓN DE EMAILJS (YA INCLUIDA)
+        // CONFIGURACIÓN DE EMAILJS
         // ============================================
         emailjs.init("Uzp0GZvuHrKZpNlA3");
         
