@@ -1,10 +1,28 @@
 const crypto = require('crypto');
 
 exports.handler = async (event) => {
+    // Si no hay body, devolver error
+    if (!event.body) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "No se recibieron datos" })
+        };
+    }
+    
     const API_KEY = "4CA6FD8D-2B9F-4503-849D-1L7370B6E8FF";
     const SECRET_KEY = "64c5d822e02f34e4a7fb24fa7a8eb9e3e75f667a";
     
-    const { numero, nombre, email, monto } = JSON.parse(event.body);
+    let data;
+    try {
+        data = JSON.parse(event.body);
+    } catch (error) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Error al parsear JSON" })
+        };
+    }
+    
+    const { numero, nombre, email, monto } = data;
     
     const params = {
         apiKey: API_KEY,
@@ -12,8 +30,8 @@ exports.handler = async (event) => {
         subject: `Número ${numero} - Rifa`,
         amount: monto,
         email: email,
-        urlConfirmation: "https://rifasloto3.netlify.app/.netlify/functions/flow-webhook",
-        urlReturn: "https://rifasloto3.netlify.app/success.html",
+        urlConfirmation: "https://scintillating-frangipane-c71f6b.netlify.app/.netlify/functions/flow-webhook",
+        urlReturn: "https://scintillating-frangipane-c71f6b.netlify.app/success.html",
         paymentMethod: 9
     };
     
@@ -26,10 +44,10 @@ exports.handler = async (event) => {
         body: new URLSearchParams(params)
     });
     
-    const data = await response.json();
+    const result = await response.json();
     
     return {
         statusCode: 200,
-        body: JSON.stringify({ url: data.url, token: data.token })
+        body: JSON.stringify({ url: result.url, token: result.token })
     };
 };
